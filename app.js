@@ -1,83 +1,57 @@
-// app.js — Week 3: JavaScript takes over the job list
+// app.js — Week 4: replace the hardcoded array with a real fetch call
 
-// --- 1. Data: the job list as an array of objects ---
-const jobs = [
-    {
-        id: 1,
-        title: 'Frontend Developer',
-        company: 'Acme Corp',
-        location: 'Bangkok',
-        type: 'Full-time',
-    },
-    {
-        id: 2,
-        title: 'Backend Engineer',
-        company: 'StartupTH',
-        location: 'Remote',
-        type: 'Full-time',
-    },
-    {
-        id: 3,
-        title: 'Junior Web Developer',
-        company: 'Digital Agency BKK',
-        location: 'Bangkok',
-        type: 'Part-time',
-    },
-    {
-        id: 4,
-        title: 'Full Stack Developer',
-        company: 'FinTech Co',
-        location: 'Chiang Mai',
-        type: 'Full-time',
-    },
-    {
-        id: 5,
-        title: 'DevOps Engineer',
-        company: 'CloudBase TH',
-        location: 'Remote',
-        type: 'Contract',
-    },
-]
+// We will mock the API response locally for now.
+// In Week 6, this URL will point to your Express server.
+const API_URL = 'https://jsonplaceholder.typicode.com/posts?_limit=5'
 
-// --- 2. A function that renders jobs into the DOM ---
-// Notice: the function takes jobs as a parameter — it does not
-// reach for the global array directly. This makes it reusable.
-function renderJobs(jobList) {
+// --- Async function to fetch jobs ---
+// The 'async' keyword means this function always returns a Promise.
+// Inside it, 'await' pauses execution until the Promise resolves.
+async function fetchJobs() {
+    const response = await fetch(API_URL)
+
+    // fetch() only rejects on network failure — not on 404 or 500.
+    // Check response.ok to catch HTTP error status codes.
+    if (!response.ok) {
+        throw new Error(`Failed to load jobs: ${response.status}`)
+    }
+
+    // .json() is also async — it reads and parses the response body.
+    const data = await response.json()
+    return data
+}
+
+// --- Render function (same as Week 3) ---
+function renderJobs(jobs) {
     const container = document.querySelector('#jobs-list')
-
-    // .map() transforms each job object into an HTML string.
-    // .join('') collapses the array of strings into one string.
-    container.innerHTML = jobList
+    container.innerHTML = jobs
         .map(
             (job) => `
-      <li class="job-card" data-job-id="${job.id}">
+      <li class="job-card">
         <h2 class="job-title">${job.title}</h2>
-        <p class="job-meta">${job.company} &middot; ${job.location} &middot; ${job.type}</p>
+        <p class="job-meta">Post #${job.id}</p>
       </li>
     `,
         )
         .join('')
 }
 
-// --- 3. A class to model a job (used in Week 8 with Mongoose) ---
-// For now, it is just good practice — classes make the shape explicit.
-class Job {
-    constructor(title, company, location, type) {
-        this.title = title
-        this.company = company
-        this.location = location
-        this.type = type
-    }
+// --- Error state ---
+function renderError(message) {
+    const container = document.querySelector('#jobs-list')
+    container.innerHTML = `<li class="error-message">${message}</li>`
+}
 
-    // A method — shared behavior attached to every Job instance
-    getSummary() {
-        return `${this.title} at ${this.company} (${this.location})`
+// --- Entry point: load and render on page load ---
+// try/catch ensures errors surface visibly instead of silently failing.
+async function init() {
+    try {
+        const jobs = await fetchJobs()
+        renderJobs(jobs)
+    } catch (error) {
+        console.error(error)
+        renderError('Could not load jobs. Please try again later.')
     }
 }
 
-// --- 4. Run it ---
-renderJobs(jobs)
-
-// Test the class in the browser console:
-// const j = new Job('Developer', 'Acme', 'Bangkok', 'Full-time')
-// console.log(j.getSummary())
+init()
